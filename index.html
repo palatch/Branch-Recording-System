@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบันทึกรายรับ-รายจ่ายรายเดือน</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Set Inter font as default -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Noto+Sans+Thai:wght@100..900&display=swap');
+        body {
+            font-family: 'Noto Sans Thai', 'Inter', sans-serif;
+            background-color: #f7f9fc;
+        }
+        /* Custom scrollbar for better appearance */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 10px;
+        }
+    </style>
+    <!-- Load Firebase/Firestore -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, orderBy, getDocs, updateDoc, deleteDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        // ** Global Variables for Canvas Environment **
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'expense-tracker-default';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db = null;
+        let auth = null;
+        let currentUserId = null;
+        let recordsRef = null;
+
+        // ** Mandatory Firebase Initialization and Authentication **
+        try {
+            if (firebaseConfig) {
+                // setLogLevel('Debug'); // Uncomment for debugging
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        currentUserId = user.uid;
+                        document.getElementById('user-id-display').textContent = `User ID: ${currentUserId}`;
+                        
+                        // Define collection path using the required structure
+                        const COLLECTION_PATH = `artifacts/${appId}/users/${currentUserId}/monthly_records`;
+                        recordsRef = collection(db, COLLECTION_PATH);
+                        
+                        setupRealtimeListener();
+                        document.getElementById('loading-overlay').classList.add('hidden');
+                        document.getElementById('main-app-content').classList.remove('hidden');
+
+                    } else {
+                        // Sign in anonymously if no token is available or user logs out
+                        if (initialAuthToken) {
+                            signInWithCustomToken(auth, initialAuthToken).catch(error => {
+                                console.error("Error signing in with custom token:", error);
+                                signInAnonymously(auth);
+                            });
+                        } else {
+                            signInAnonymously(auth).catch(error => {
+                                console.error("Error signing in anonymously:", error);
+                            });
+                        }
+                    }
+                });
+            } else {
+                console.error("Firebase config is missing. Data storage will not work.");
+                document.getElementById('loading-overlay').textContent = 'Error: Firebase not configured.';
+            }
+        } catch (e) {
+            console.error("Firebase setup failed:", e);
+        }
+        
+        // Attach required functions to window object
+        window.db = db;
+        window.auth = auth;
+        window.getMonthlyRecordsRef = () => recordsRef;
+        
+        // --- Core Application Logic (will run after init) ---
+
+        // Function to set up real-time listener
+        function setupRealtimeListener() {
+            if (!recordsRef) {
+                console.warn("Firestore records reference is not set.");
+                return;
+            }
+
+            // Listen for data changes. Order by 'isoDate' for chronological sort.
+            const q = query(recordsRef); // orderBy not used to prevent indexing errors, sorting done in memory
+            onSnapshot(q, (snapshot) => {
+                const records = [];
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    records.push({ id: doc.id, ...data });
+                });
+                
+                // Sort records by isoDate for correct chronological order
+                records.sort((a, b) => (a.isoDate > b.isoDate) ? 1 : -1);
+
+                window.renderTable(records);
+                window.dataStore = records; // Store for Export/Import
+            }, (error) => {
+                console.error("Error setting up snapshot listener:", error);
+                // Optionally show error to user
+            });
+        }
+    </script>
+    
+    <!-- Load SheetJS for Excel handling -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body class="p-4 md:p-8">
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-gray-100 flex items-center justify-center z-50">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+        <p class="ml-4 text-gray-700">กำลังโหลดข้อมูลและเข้าสู่ระบบ...</p>
+    </div>
+
+    <!-- Main Application Content -->
+    <div id="main-app-content" class="hidden max-w-7xl mx-auto">
+        
+        <header class="mb-6 pb-4 border-b border-blue-200">
+            <h1 class="text-3xl font-extrabold text-blue-700">📈 ระบบสรุปรายรับ-รายจ่ายสาขา</h1>
+            <p class="text-sm text-gray-500 mt-1" id="user-id-display">User ID: Loading...</p>
+        </header>
+
+        <!-- Control Panel: Add, Import, Export -->
+        <div class="mb-6 flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4">
+            
+            <!-- Add Button -->
+            <button onclick="openModal('add')" class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200">
+                + เพิ่ม/แก้ไข รายการเดือน
+            </button>
+
+            <!-- Import/Export Group -->
+            <div class="flex flex-grow space-x-2">
+                <input type="file" id="import-file" accept=".xlsx,.csv" class="hidden" onchange="importData(event)">
+                <button onclick="document.getElementById('import-file').click()" class="w-1/2 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 flex items-center justify-center text-sm md:text-base">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L10 11.586l1.293-1.293a1 1 0 111.414 1.414l-2 2a1 1 0 01-1.414 0l-2-2a1 1 0 010-1.414z" clip-rule="evenodd" /><path d="M10 2a1 1 0 011 1v7a1 1 0 11-2 0V3a1 1 0 011-1z" /></svg>
+                    นำเข้า Excel
+                </button>
+                <button onclick="exportData()" class="w-1/2 bg-yellow-500 hover:bg-yellow-600 text-gray-800 font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 flex items-center justify-center text-sm md:text-base">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-3.293-9.293a1 1 0 001.414 1.414L10 9.414l1.293 1.293a1 1 0 001.414-1.414l-2-2a1 1 0 00-1.414 0l-2 2z" clip-rule="evenodd" /></svg>
+                    ส่งออก Excel
+                </button>
+            </div>
+        </div>
+
+        <!-- Table Display -->
+        <div class="bg-white p-4 rounded-xl shadow-lg overflow-x-auto custom-scrollbar">
+            <table id="data-table" class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-blue-50">
+                    <tr id="table-header-row">
+                        <!-- Header will be dynamically generated here -->
+                    </tr>
+                </thead>
+                <tbody id="table-body" class="bg-white divide-y divide-gray-200 text-sm">
+                    <!-- Data rows will be dynamically generated here -->
+                </tbody>
+            </table>
+            <!-- Summary Row -->
+            <table class="min-w-full mt-4 text-sm font-bold border-t-2 border-blue-500">
+                <tbody id="table-summary-row">
+                    <!-- Summary row will be dynamically generated here -->
+                </tbody>
+            </table>
+
+            <p id="empty-state" class="text-center text-gray-500 p-8 hidden">
+                ยังไม่มีข้อมูลรายรับ-รายจ่าย กรุณาเพิ่มรายการใหม่
+            </p>
+        </div>
+    </div>
+
+    <!-- Modal for Add/Edit Record -->
+    <div id="data-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6 transform transition-all scale-100 duration-300">
+            <h2 id="modal-title" class="text-xl font-bold mb-4 ">เพิ่ม/แก้ไข รายการเดือน</h2>
+            <form id="record-form">
+                <input type="hidden" id="record-id">
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <!-- Input: เดือน (Date Picker) -->
+                    <div class="col-span-2 sm:col-span-1">
+                        <label for="input-date" class="block text-sm font-medium text-gray-700">เลือกเดือน/ปี</label>
+                        <!-- Note: Using type="date" to capture YYYY-MM-DD. We will enforce the 1st of the month on save. -->
+                        <input type="date" id="input-date" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500">
+                        <!-- Hidden inputs to store the Thai display format and the full date for sorting -->
+                        <input type="hidden" id="month"> 
+                        <input type="hidden" id="isoDate"> 
+                    </div>
+                    <!-- Input: รายได้ซักอบ (RENAMED and now takes GROSS amount) -->
+                    <div class="col-span-2 sm:col-span-1">
+                        <label for="รายได้ซักอบ" class="block text-sm font-medium text-gray-700">รายได้ซักอบ <span class="text-xs text-blue-500">(ยอดรวม VAT 7%)</span></label>
+                        <input type="number" id="รายได้ซักอบ" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <!-- Input: ค่าเช่า3 (Input NET/Pre-VAT) -->
+                    <div>
+                        <label for="ค่าเช่า3" class="block text-sm font-medium text-gray-700">ค่าเช่า 3% <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
+                        <input type="number" id="ค่าเช่า3" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
+                    </div>
+                    <!-- Input: ค่าน้ำ (Input NET/Pre-VAT) -->
+                    <div>
+                        <label for="ค่าน้ำ" class="block text-sm font-medium text-gray-700">ค่าน้ำ <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
+                        <input type="number" id="ค่าน้ำ" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
+                    </div>
+                    <!-- Input: ค่าไฟ (Input NET/Pre-VAT) -->
+                    <div>
+                        <label for="ค่าไฟ" class="block text-sm font-medium text-gray-700">ค่าไฟ <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
+                        <input type="number" id="ค่าไฟ" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
+                    </div>
+                    <!-- Input: ค่าเน็ต (Input NET/Pre-VAT) -->
+                    <div>
+                        <label for="ค่าเน็ต" class="block text-sm font-medium text-gray-700">ค่าเน็ต <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
+                        <input type="number" id="ค่าเน็ต" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
+                    </div>
+                    <!-- Input: ค่าส่วนกลาง (Input NET/Pre-VAT) -->
+                    <div>
+                        <label for="ค่าส่วนกลาง" class="block text-sm font-medium text-gray-700">ค่าส่วนกลาง <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
+                        <input type="number" id="ค่าส่วนกลาง" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
+                    </div>
+                    <!-- Input: ค่าเบี้ยประกันภัย (Input NET/Pre-VAT) -->
+                    <div>
+                        <label for="ค่าเบี้ยประกันภัย" class="block text-sm font-medium text-gray-700">ค่าเบี้ยประกันภัย <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
+                        <input type="number" id="ค่าเบี้ยประกันภัย" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
+                    </div>
+                    <!-- Input: ค่าบริหารร้าน25 (Input NET/Pre-VAT) -->
+                    <div class="col-span-2">
+                        <label for="ค่าบริหารร้าน25" class="block text-sm font-medium text-gray-700">ค่าบริหารร้าน 25% <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
+                        <input type="number" id="ค่าบริหารร้าน25" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition duration-200">
+                        ยกเลิก
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition duration-200">
+                        บันทึกข้อมูล
+                    </button>
+                    <button type="button" id="delete-btn" onclick="deleteRecord()" class="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition duration-200 hidden">
+                        ลบรายการ
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirmation/Alert Modal -->
+    <div id="alert-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 transform transition-all duration-300">
+            <h3 class="text-xl font-bold mb-3 text-red-600">ยืนยันการลบ</h3>
+            <p id="alert-message" class="mb-4 text-gray-700">คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?</p>
+            <div class="flex justify-end space-x-3">
+                <button onclick="window.confirmCallback(false)" class="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition duration-200">
+                    ยกเลิก
+                </button>
+                <button onclick="window.confirmCallback(true)" class="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition duration-200">
+                    ยืนยัน
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global data store to hold records for export/import
+        window.dataStore = [];
+
+        // --- Configuration & VAT Helpers ---
+        const VAT_RATE = 0.07; 
+        const VAT_FACTOR = 1 + VAT_RATE; // 1.07
+
+        function toNet(gross) {
+            // Converts Gross amount (รวม VAT) to Net amount (ก่อน VAT)
+            return gross / VAT_FACTOR;
+        }
+
+        function toGross(net) {
+            // Converts Net amount (ก่อน VAT) to Gross amount (รวม VAT)
+            return net * VAT_FACTOR;
+        }
+
+        const THAI_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+        function convertDateToThaiFormat(isoDate) {
+            if (!isoDate) return '';
+            try {
+                const date = new Date(isoDate);
+                const monthIndex = date.getMonth();
+                const year = date.getFullYear() + 543; // Convert to Buddhist Era
+                return `${THAI_MONTHS[monthIndex]}-${String(year).slice(-2)}`;
+            } catch (e) {
+                console.error("Invalid date format for conversion:", isoDate);
+                return '';
+            }
+        }
+
+        const COLUMN_CONFIG = [
+            { key: 'month', header: 'เดือน', type: 'string', isEditable: false, isSummary: true, summaryLabel: 'รวมทั้งสิ้น' },
+            { key: 'isoDate', header: 'ISO Date', type: 'hidden', isEditable: false }, // Internal key for sorting
+            { key: 'รายได้ซักอบ', header: 'รายได้ซักอบ', type: 'number', isEditable: true }, // **STORES NET AMOUNT**
+            { key: 'ค่าเช่า3', header: 'ค่าเช่า 3%', type: 'number', isEditable: true },
+            { key: 'ค่าน้ำ', header: 'ค่าน้ำ', type: 'number', isEditable: true },
+            { key: 'ค่าไฟ', header: 'ค่าไฟ', type: 'number', isEditable: true },
+            { key: 'ค่าเน็ต', header: 'ค่าเน็ต', type: 'number', isEditable: true },
+            { key: 'ค่าส่วนกลาง', header: 'ค่าส่วนกลาง', type: 'number', isEditable: true },
+            { key: 'ค่าเบี้ยประกันภัย', header: 'ค่าเบี้ยประกันภัย', type: 'number', isEditable: true },
+            { key: 'ค่าบริหารร้าน25', header: 'ค่าบริหารร้าน 25%', type: 'number', isEditable: true },
+            { key: 'รวมค่าใช้จ่าย', header: 'รวมค่าใช้จ่าย', type: 'calculated', isSummary: true, isTotalExpense: true },
+            { key: 'สรุปยอดโอน', header: 'สรุปยอดโอน', type: 'calculated', isSummary: true, isNetTransfer: true },
+            { key: 'action', header: 'แก้ไข', type: 'action' }
+        ];
+
+        // --- Core Calculation Logic (All calculations use the stored NET amounts) ---
+        function calculateSummary(record) {
+            // Get value using the new key 'รายได้ซักอบ' (which stores the NET amount)
+            const getNum = (key) => parseFloat(record[key] || 0);
+
+            // 1. รวมค่าใช้จ่าย (Total Expenses - all are NET/Pre-VAT)
+            const totalExpenses = getNum('ค่าเช่า3') + getNum('ค่าน้ำ') + getNum('ค่าไฟ') + getNum('ค่าเน็ต') + 
+                                  getNum('ค่าส่วนกลาง') + getNum('ค่าเบี้ยประกันภัย') + getNum('ค่าบริหารร้าน25');
+
+            // 2. สรุปยอดโอน (Net Transfer Amount = Income NET - Expenses NET)
+            const netTransfer = getNum('รายได้ซักอบ') - totalExpenses;
+            
+            // Update the record object with calculated values
+            record.รวมค่าใช้จ่าย = totalExpenses.toFixed(2);
+            record.สรุปยอดโอน = netTransfer.toFixed(2);
+            
+            return record;
+        }
+
+        // --- UI Rendering (Unchanged) ---
+        window.renderTable = (records) => {
+            const tableBody = document.getElementById('table-body');
+            const tableHeaderRow = document.getElementById('table-header-row');
+            const tableSummaryRow = document.getElementById('table-summary-row');
+            tableBody.innerHTML = '';
+            tableHeaderRow.innerHTML = '';
+            tableSummaryRow.innerHTML = '';
+
+            if (records.length === 0) {
+                document.getElementById('empty-state').classList.remove('hidden');
+                return;
+            }
+            document.getElementById('empty-state').classList.add('hidden');
+
+            // 1. Render Header
+            COLUMN_CONFIG.filter(col => col.type !== 'hidden').forEach(col => {
+                const th = document.createElement('th');
+                th.className = 'px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky top-0 bg-blue-50';
+                th.textContent = col.header;
+                tableHeaderRow.appendChild(th);
+            });
+
+            // 2. Render Data Rows
+            let totalSummary = COLUMN_CONFIG.reduce((acc, col) => {
+                if (col.type === 'number' || col.isSummary) {
+                    acc[col.key] = 0;
+                }
+                return acc;
+            }, {});
+
+            records.forEach((rawRecord, index) => {
+                const record = calculateSummary({ ...rawRecord }); // Recalculate for display and summary
+                const row = document.createElement('tr');
+                row.className = index % 2 === 0 ? 'bg-white hover:bg-gray-50' : 'bg-gray-50 hover:bg-gray-100';
+
+                COLUMN_CONFIG.filter(col => col.type !== 'hidden').forEach(col => {
+                    const cell = document.createElement('td');
+                    cell.className = 'px-4 py-3 whitespace-nowrap';
+
+                    if (col.key === 'action') {
+                        const editBtn = document.createElement('button');
+                        editBtn.textContent = '...';
+                        editBtn.onclick = () => openModal('edit', record.id);
+                        editBtn.className = 'text-blue-600 hover:text-blue-900 font-bold p-1 rounded-full hover:bg-blue-100 transition';
+                        cell.appendChild(editBtn);
+                    } else {
+                        let value = record[col.key] !== undefined ? record[col.key] : '';
+
+                        if (col.type === 'number' || col.type === 'calculated') {
+                            value = parseFloat(value).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            cell.className += ' text-right font-mono';
+                            
+                            // Accumulate for summary (only original numbers and net transfer/total expenses)
+                            if (col.type === 'number' || col.isTotalExpense || col.isNetTransfer) {
+                                totalSummary[col.key] += parseFloat(record[col.key]);
+                            }
+
+                            // Highlight Net Transfer column (สรุปยอดโอน)
+                            if (col.isNetTransfer) {
+                                cell.className += parseFloat(record[col.key]) < 0 ? ' text-red-600' : ' text-green-600';
+                                cell.innerHTML = `<span class="font-extrabold">${value}</span>`;
+                            } else {
+                                cell.textContent = value;
+                            }
+                            
+                        } else {
+                            cell.textContent = value;
+                        }
+                    }
+                    row.appendChild(cell);
+                });
+                tableBody.appendChild(row);
+            });
+
+            // 3. Render Summary Row
+            const summaryRow = document.createElement('tr');
+            
+            COLUMN_CONFIG.filter(col => col.type !== 'hidden').forEach(col => {
+                const cell = document.createElement('td');
+                cell.className = 'px-4 py-3 whitespace-nowrap font-extrabold border-t border-gray-300';
+                
+                if (col.isSummary) {
+                    if (col.key === 'month') {
+                        cell.textContent = col.summaryLabel;
+                        cell.className += ' text-left text-blue-700';
+                    } else if (col.key !== 'isoDate') {
+                        const total = totalSummary[col.key];
+                        const displayValue = total.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                        cell.textContent = displayValue;
+                        cell.className += ' text-right font-mono';
+                        
+                        if (col.isNetTransfer) {
+                            cell.className += total < 0 ? ' text-red-700' : ' text-green-700';
+                            cell.innerHTML = `<span>${displayValue}</span>`;
+                        } else if (col.isTotalExpense) {
+                            cell.className += ' text-red-700';
+                        }
+                    }
+                } else {
+                    cell.textContent = ''; // Empty cell for non-summary/non-display columns
+                }
+                summaryRow.appendChild(cell);
+            });
+            tableSummaryRow.appendChild(summaryRow);
+        };
+        
+        // --- CRUD Operations (Firestore) ---
+        const recordForm = document.getElementById('record-form');
+        recordForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const docId = document.getElementById('record-id').value;
+            const inputDateStr = document.getElementById('input-date').value;
+
+            // Enforce day 1 for storage and conversion
+            const dateParts = inputDateStr.split('-');
+            const isoDate = `${dateParts[0]}-${dateParts[1]}-01`;
+            
+            // Generate Thai display month
+            const thaiMonth = convertDateToThaiFormat(isoDate);
+
+            const record = {
+                month: thaiMonth, // Thai formatted month for display
+                isoDate: isoDate   // Full ISO date for chronological sorting
+            };
+            
+            // Capture all number inputs based on CONFIG
+            COLUMN_CONFIG.filter(c => c.isEditable && c.type === 'number').forEach(col => {
+                const input = document.getElementById(col.key);
+                let value = parseFloat(input.value || 0);
+
+                if (col.key === 'รายได้ซักอบ') {
+                    // CONVERSION: Convert Gross Income (from form) to Net Income (for storage)
+                    value = toNet(value);
+                }
+                
+                record[col.key] = value;
+            });
+            
+            if (!window.getMonthlyRecordsRef()) {
+                console.error("Firestore is not ready.");
+                return;
+            }
+
+            try {
+                if (docId) {
+                    // Update
+                    await updateDoc(doc(window.db, window.getMonthlyRecordsRef().path, docId), record);
+                    console.log("Document updated with ID: ", docId);
+                } else {
+                    // Create
+                    const newDocRef = doc(window.getMonthlyRecordsRef());
+                    await setDoc(newDocRef, record);
+                    console.log("Document written with ID: ", newDocRef.id);
+                }
+                closeModal();
+            } catch (error) {
+                console.error("Error writing document: ", error);
+            }
+        });
+        
+        window.deleteRecord = () => {
+            const docId = document.getElementById('record-id').value;
+            if (docId) {
+                showConfirmModal("คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้? การดำเนินการนี้ไม่สามารถย้อนกลับได้", async (confirmed) => {
+                    if (confirmed) {
+                        try {
+                            await deleteDoc(doc(window.db, window.getMonthlyRecordsRef().path, docId));
+                            console.log("Document successfully deleted!");
+                            closeModal();
+                        } catch (error) {
+                            console.error("Error removing document: ", error);
+                        }
+                    }
+                });
+            }
+        };
+
+        // --- Modal & UI Management ---
+        window.openModal = (mode, id = null) => {
+            const modal = document.getElementById('data-modal');
+            const title = document.getElementById('modal-title');
+            const deleteBtn = document.getElementById('delete-btn');
+            const recordIdInput = document.getElementById('record-id');
+            const form = document.getElementById('record-form');
+            const inputDate = document.getElementById('input-date');
+
+            form.reset();
+            recordIdInput.value = '';
+            deleteBtn.classList.add('hidden');
+            
+            if (mode === 'edit' && id) {
+                title.textContent = 'แก้ไขรายการรายเดือน';
+                recordIdInput.value = id;
+                deleteBtn.classList.remove('hidden');
+
+                const record = window.dataStore.find(r => r.id === id);
+                if (record) {
+                    // Set date input using stored isoDate
+                    inputDate.value = record.isoDate || '';
+                    
+                    // Populate number inputs
+                    COLUMN_CONFIG.filter(c => c.isEditable && c.type === 'number').forEach(col => {
+                        const input = document.getElementById(col.key);
+                        let value = record[col.key] !== undefined ? record[col.key] : 0;
+                        
+                        if (col.key === 'รายได้ซักอบ') {
+                            // CONVERSION: Convert Net Income (from storage) back to Gross Income (for form display)
+                            value = toGross(value);
+                        }
+
+                        input.value = value.toFixed(2);
+                    });
+                }
+            } else {
+                title.textContent = 'เพิ่มรายการใหม่';
+                // Set default date to the 1st of the current month
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                inputDate.value = `${year}-${month}-01`;
+                
+                // Set default values for number inputs
+                COLUMN_CONFIG.filter(c => c.isEditable && c.type === 'number').forEach(col => {
+                    document.getElementById(col.key).value = 0;
+                });
+            }
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        };
+
+        window.closeModal = () => {
+            const modal = document.getElementById('data-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.getElementById('record-form').reset();
+        };
+        
+        // --- Custom Alert/Confirmation Dialog ---
+        let resolvePromise;
+        window.confirmCallback = (result) => {
+            document.getElementById('alert-modal').classList.add('hidden');
+            document.getElementById('alert-modal').classList.remove('flex');
+            if (resolvePromise) {
+                resolvePromise(result);
+            }
+        };
+
+        function showConfirmModal(message, callback) {
+            document.getElementById('alert-message').textContent = message;
+            document.getElementById('alert-modal').classList.remove('hidden');
+            document.getElementById('alert-modal').classList.add('flex');
+            
+            return new Promise(resolve => {
+                resolvePromise = resolve;
+                window.confirmCallback = (result) => {
+                    document.getElementById('alert-modal').classList.add('hidden');
+                    document.getElementById('alert-modal').classList.remove('flex');
+                    resolve(result);
+                    if (callback) callback(result);
+                };
+            });
+        }
+
+
+        // --- Excel Import/Export Logic (using SheetJS/XLSX) ---
+
+        // Map column keys to Thai headers for file export
+        const EXPORT_HEADERS = COLUMN_CONFIG
+            .filter(c => c.key !== 'action' && c.type !== 'hidden')
+            .map(c => ({ key: c.key, header: c.header }));
+
+        window.exportData = () => {
+            if (window.dataStore.length === 0) {
+                showConfirmModal("ไม่มีข้อมูลให้ส่งออก กรุณาเพิ่มรายการก่อน", (r) => {});
+                return;
+            }
+
+            // 1. Prepare data for Excel
+            const exportDataArray = window.dataStore.map(record => {
+                const calculatedRecord = calculateSummary({ ...record });
+                const obj = {};
+                
+                // Include isoDate for data integrity in export, use 'วันที่ ISO' as header
+                obj['วันที่ ISO'] = calculatedRecord.isoDate; 
+
+                EXPORT_HEADERS.forEach(col => {
+                    let value = calculatedRecord[col.key] !== undefined ? calculatedRecord[col.key] : '';
+                    
+                    // For Income, export the GROSS amount for consistency with user input method
+                    if (col.key === 'รายได้ซักอบ') {
+                        value = toGross(parseFloat(value));
+                    }
+
+                    if (col.type === 'number' || col.type === 'calculated') {
+                        value = parseFloat(value); // Keep as number for Excel
+                    }
+                    obj[col.header] = value; // Use Thai header as key
+                });
+                return obj;
+            });
+            
+            // 2. Define headers for Excel in desired order (Thai headers + ISO date for context)
+            const finalExportHeaders = EXPORT_HEADERS.map(h => h.header);
+            finalExportHeaders.splice(1, 0, 'วันที่ ISO'); // Insert ISO Date after 'เดือน'
+            
+            // 3. Create worksheet
+            const ws = XLSX.utils.json_to_sheet(exportDataArray, { header: finalExportHeaders });
+            
+            // 4. Create workbook and download
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "สรุปรายรับ-รายจ่าย");
+            XLSX.writeFile(wb, "สรุปรายรับ-รายจ่าย_Export.xlsx");
+        };
+
+        window.importData = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const data = e.target.result;
+                const workbook = XLSX.read(data, { type: 'binary' });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                // Convert sheet to JSON array
+                const importedJson = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                
+                if (importedJson.length < 2) {
+                    showConfirmModal("ไฟล์นำเข้าไม่ถูกต้องหรือว่างเปล่า", (r) => {});
+                    return;
+                }
+
+                const importedHeaders = importedJson[0];
+                const dataRows = importedJson.slice(1);
+                const recordsToSave = [];
+
+                // Mapping imported Thai headers back to internal keys
+                const headerMap = COLUMN_CONFIG
+                    .filter(c => c.key !== 'action' && c.type !== 'hidden')
+                    .reduce((map, col) => {
+                        map[col.header] = col.key;
+                        return map;
+                    }, {});
+                
+                // Add the internal ISO date key to the map for proper import handling
+                headerMap['วันที่ ISO'] = 'isoDate';
+
+                // Process rows
+                dataRows.forEach(row => {
+                    const newRecord = {};
+                    let isValidRow = false;
+                    
+                    importedHeaders.forEach((header, index) => {
+                        const internalKey = headerMap[header];
+                        if (internalKey) {
+                            let value = row[index];
+
+                            if (internalKey === 'isoDate' && typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                                // Use the ISO date for sorting
+                                newRecord[internalKey] = value; 
+                                newRecord.month = convertDateToThaiFormat(value);
+                                isValidRow = true;
+                            } else if (internalKey === 'isoDate' && !value) {
+                                // Skip this row if critical 'isoDate' is missing for sorting
+                            } else if (internalKey !== 'month') { 
+                                // Handle number inputs
+                                if (typeof value === 'number') {
+                                    if (internalKey === 'รายได้ซักอบ') {
+                                        // CONVERSION: Income from Excel is GROSS, convert to NET for storage
+                                        value = toNet(value); 
+                                    }
+                                    newRecord[internalKey] = value;
+                                } else if (value) {
+                                    let numValue = parseFloat(value) || 0;
+                                    if (internalKey === 'รายได้ซักอบ') {
+                                        // CONVERSION: Income from Excel is GROSS, convert to NET for storage
+                                        numValue = toNet(numValue);
+                                    }
+                                    newRecord[internalKey] = numValue;
+                                } else {
+                                    newRecord[internalKey] = 0; // Default zero for missing numbers
+                                }
+                            }
+                        }
+                    });
+                    
+                    if (isValidRow) {
+                        // Apply calculations to ensure data integrity before saving
+                        const finalRecord = calculateSummary(newRecord); 
+                        recordsToSave.push(finalRecord);
+                    }
+                });
+
+                if (recordsToSave.length === 0) {
+                    showConfirmModal("ไม่พบข้อมูลที่ถูกต้องในไฟล์นำเข้า กรุณาตรวจสอบว่ามีคอลัมน์ 'วันที่ ISO' และข้อมูลในคอลัมน์นั้นถูกต้องหรือไม่", (r) => {});
+                    return;
+                }
+
+                // *** Batch Save/Update to Firestore ***
+                showConfirmModal(`พบข้อมูล ${recordsToSave.length} รายการ. ต้องการล้างข้อมูลเดิมและบันทึกใหม่หรือไม่?`, async (confirmed) => {
+                    if (confirmed) {
+                        try {
+                            const recordsRef = window.getMonthlyRecordsRef();
+                            if (!recordsRef) throw new Error("Firestore not initialized.");
+
+                            // 1. Delete all existing records
+                            const existingDocs = await getDocs(recordsRef);
+                            const deletePromises = existingDocs.docs.map(doc => deleteDoc(doc.ref));
+                            await Promise.all(deletePromises);
+
+                            // 2. Add new records
+                            const savePromises = recordsToSave.map(record => {
+                                // Remove ID/calculated fields before saving
+                                delete record.id; 
+                                delete record.รวมค่าใช้จ่าย;
+                                delete record.สรุปยอดโอน;
+                                return setDoc(doc(recordsRef), record);
+                            });
+                            await Promise.all(savePromises);
+
+                            showConfirmModal("นำเข้าข้อมูลเสร็จสมบูรณ์!", (r) => {});
+                        } catch (error) {
+                            console.error("Batch import failed:", error);
+                            showConfirmModal("เกิดข้อผิดพลาดในการนำเข้าข้อมูล: " + error.message, (r) => {});
+                        }
+                    }
+                });
+            };
+
+            reader.onerror = (error) => {
+                console.error("File reading error:", error);
+                showConfirmModal("เกิดข้อผิดพลาดในการอ่านไฟล์", (r) => {});
+            };
+
+            reader.readAsBinaryString(file);
+        };
+
+        // Initialize the app logic once the page is fully loaded and Firebase is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            // Event listener for form submission is already set up above
+        });
+    </script>
+</body>
+</html>
