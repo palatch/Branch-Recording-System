@@ -29,10 +29,21 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, onSnapshot, collection, query, orderBy, getDocs, updateDoc, deleteDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
-        // ** Global Variables for Canvas Environment **
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'expense-tracker-default';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        // ** GLOBAL CONFIGURATION FOR GITHUB PAGES **
+        // เมื่อนำโค้ดไปใช้งานบน GitHub Pages ต้องใส่ค่าจริงของ Firebase ที่นี่
+        const appId = 'expense-tracker-gh-page'; // กำหนด App ID สำหรับใช้ใน Firestore Path
+        
+        // !!! สำคัญ: แทนที่ค่าเหล่านี้ด้วย Firebase Config ของคุณเอง !!!
+        const firebaseConfig = {
+            // กรุณาเปลี่ยน YOUR_API_KEY, YOUR_PROJECT_ID เป็นค่าจริงจาก Firebase Console ของคุณ
+            apiKey: "YOUR_API_KEY", 
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID", 
+            // ใส่ค่าอื่น ๆ หากมี เช่น storageBucket, messagingSenderId, appId
+        };
+
+        // เนื่องจากรันบน GitHub Pages เราจะบังคับให้ใช้ Sign In Anonymously
+        const initialAuthToken = null; 
 
         let db = null;
         let auth = null;
@@ -41,11 +52,17 @@
 
         // ** Mandatory Firebase Initialization and Authentication **
         try {
-            if (firebaseConfig) {
+            // ตรวจสอบว่ามีค่า Firebase Config (ถึงแม้จะเป็นค่าจำลอง)
+            if (firebaseConfig.projectId && firebaseConfig.apiKey !== "YOUR_API_KEY") { 
                 // setLogLevel('Debug'); // Uncomment for debugging
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
+
+                // เริ่มต้นด้วยการ Sign In Anonymously ทันที
+                signInAnonymously(auth).catch(error => {
+                    console.error("Error signing in anonymously:", error);
+                });
                 
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
@@ -61,25 +78,47 @@
                         document.getElementById('main-app-content').classList.remove('hidden');
 
                     } else {
-                        // Sign in anonymously if no token is available or user logs out
-                        if (initialAuthToken) {
-                            signInWithCustomToken(auth, initialAuthToken).catch(error => {
-                                console.error("Error signing in with custom token:", error);
-                                signInAnonymously(auth);
-                            });
-                        } else {
-                            signInAnonymously(auth).catch(error => {
-                                console.error("Error signing in anonymously:", error);
-                            });
-                        }
+                         // หากหลุดออกจากระบบ, ลอง Sign In อีกครั้ง
+                         console.log("User signed out, attempting anonymous sign in.");
+                         signInAnonymously(auth);
                     }
                 });
+            } else if (typeof __firebase_config !== 'undefined' && JSON.parse(__firebase_config).projectId) {
+                 // Fallback: If running inside Canvas, use Canvas variables
+                 const canvasConfig = JSON.parse(__firebase_config);
+                 const app = initializeApp(canvasConfig);
+                 db = getFirestore(app);
+                 auth = getAuth(app);
+
+                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    signInWithCustomToken(auth, __initial_auth_token);
+                 } else {
+                    signInAnonymously(auth);
+                 }
+                 
+                 onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        currentUserId = user.uid;
+                        const canvasAppId = typeof __app_id !== 'undefined' ? __app_id : 'expense-tracker-default';
+                        document.getElementById('user-id-display').textContent = `User ID: ${currentUserId} (Canvas)`;
+                        
+                        const COLLECTION_PATH = `artifacts/${canvasAppId}/users/${currentUserId}/monthly_records`;
+                        recordsRef = collection(db, COLLECTION_PATH);
+                        
+                        setupRealtimeListener();
+                        document.getElementById('loading-overlay').classList.add('hidden');
+                        document.getElementById('main-app-content').classList.remove('hidden');
+                    }
+                 });
+
+
             } else {
-                console.error("Firebase config is missing. Data storage will not work.");
-                document.getElementById('loading-overlay').textContent = 'Error: Firebase not configured.';
+                console.error("Firebase config is missing or invalid. Please check the top of the index.html file.");
+                document.getElementById('loading-overlay').textContent = 'Error: Firebase not configured. Please replace the placeholder API key/Project ID.';
             }
         } catch (e) {
             console.error("Firebase setup failed:", e);
+             document.getElementById('loading-overlay').textContent = 'Error: Firebase setup failed. Check console for details.';
         }
         
         // Attach required functions to window object
@@ -394,7 +433,13 @@
                         let value = record[col.key] !== undefined ? record[col.key] : '';
 
                         if (col.type === 'number' || col.type === 'calculated') {
-                            value = parseFloat(value).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            // For display, convert Income back to GROSS for the user's view
+                            let displayValue = parseFloat(value);
+                            if (col.key === 'รายได้ซักอบ') {
+                                displayValue = toGross(displayValue);
+                            }
+
+                            value = displayValue.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                             cell.className += ' text-right font-mono';
                             
                             // Accumulate for summary (only original numbers and net transfer/total expenses)
@@ -431,7 +476,13 @@
                         cell.textContent = col.summaryLabel;
                         cell.className += ' text-left text-blue-700';
                     } else if (col.key !== 'isoDate') {
-                        const total = totalSummary[col.key];
+                        let total = totalSummary[col.key];
+
+                        // For summary row, convert Income total back to GROSS for display
+                        if (col.key === 'รายได้ซักอบ') {
+                            total = toGross(total);
+                        }
+
                         const displayValue = total.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                         cell.textContent = displayValue;
                         cell.className += ' text-right font-mono';
@@ -486,6 +537,7 @@
             
             if (!window.getMonthlyRecordsRef()) {
                 console.error("Firestore is not ready.");
+                // Show user an alert that save failed
                 return;
             }
 
