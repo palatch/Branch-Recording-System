@@ -139,40 +139,40 @@
                 </div>
 
                 <div class="grid grid-cols-2 gap-4 mb-4">
-                    <!-- Input: ค่าเช่า3 (Input NET/Pre-VAT) -->
+                    <!-- Input: ค่าเช่า5 (Input NET/Pre-VAT) -->
                     <div>
-                        <label for="ค่าเช่า3" class="block text-sm font-medium text-gray-700">ค่าเช่า 3% <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
-                        <input type="number" id="ค่าเช่า3" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
+                        <label for="ค่าเช่า5" class="block text-sm font-medium text-gray-700">ค่าเช่า 5% <span class="text-xs text-blue-500">(คำนวณจากรายได้)</span></label>
+                        <input type="number" id="ค่าเช่า5" step="0.01" required readonly class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border bg-gray-100 focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
                     </div>
-                    <!-- Input: ค่าน้ำ (Input NET/Pre-VAT) -->
+                    <!-- Input: ค่าน้ำ (Input GROSS/Post-VAT) -->
                     <div>
-                        <label for="ค่าน้ำ" class="block text-sm font-medium text-gray-700">ค่าน้ำ <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
+                        <label for="ค่าน้ำ" class="block text-sm font-medium text-gray-700">ค่าน้ำ <span class="text-xs text-blue-500">(ยอดรวม VAT 7%)</span></label>
                         <input type="number" id="ค่าน้ำ" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
                     </div>
-                    <!-- Input: ค่าไฟ (Input NET/Pre-VAT) -->
+                    <!-- Input: ค่าไฟ (Input GROSS/Post-VAT) -->
                     <div>
-                        <label for="ค่าไฟ" class="block text-sm font-medium text-gray-700">ค่าไฟ <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
+                        <label for="ค่าไฟ" class="block text-sm font-medium text-gray-700">ค่าไฟ <span class="text-xs text-blue-500">(ยอดรวม VAT 7%)</span></label>
                         <input type="number" id="ค่าไฟ" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
                     </div>
-                    <!-- Input: ค่าเน็ต (Input NET/Pre-VAT) -->
+                    <!-- Input: ค่าเน็ต (Input GROSS/Post-VAT) -->
                     <div>
-                        <label for="ค่าเน็ต" class="block text-sm font-medium text-gray-700">ค่าเน็ต <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
+                        <label for="ค่าเน็ต" class="block text-sm font-medium text-gray-700">ค่าเน็ต <span class="text-xs text-blue-500">(ยอดรวม VAT 7%)</span></label>
                         <input type="number" id="ค่าเน็ต" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
                     </div>
-                    <!-- Input: ค่าส่วนกลาง (Input NET/Pre-VAT) -->
+                    <!-- Input: ค่าส่วนกลาง (Input GROSS/Post-VAT) -->
                     <div>
-                        <label for="ค่าส่วนกลาง" class="block text-sm font-medium text-gray-700">ค่าส่วนกลาง <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
+                        <label for="ค่าส่วนกลาง" class="block text-sm font-medium text-gray-700">ค่าส่วนกลาง <span class="text-xs text-blue-500">(ยอดรวม VAT 7%)</span></label>
                         <input type="number" id="ค่าส่วนกลาง" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
                     </div>
-                    <!-- Input: ค่าเบี้ยประกันภัย (Input NET/Pre-VAT) -->
+                    <!-- Input: ค่าเบี้ยประกันภัย (Input GROSS/Post-VAT) -->
                     <div>
-                        <label for="ค่าเบี้ยประกันภัย" class="block text-sm font-medium text-gray-700">ค่าเบี้ยประกันภัย <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
+                        <label for="ค่าเบี้ยประกันภัย" class="block text-sm font-medium text-gray-700">ค่าเบี้ยประกันภัย <span class="text-xs text-blue-500">(ยอดรวม VAT 7%)</span></label>
                         <input type="number" id="ค่าเบี้ยประกันภัย" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
                     </div>
                     <!-- Input: ค่าบริหารร้าน25 (Input NET/Pre-VAT) -->
                     <div class="col-span-2">
-                        <label for="ค่าบริหารร้าน25" class="block text-sm font-medium text-gray-700">ค่าบริหารร้าน 25% <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
-                        <input type="number" id="ค่าบริหารร้าน25" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
+                        <label for="ค่าบริหารร้าน25" class="block text-sm font-medium text-gray-700">ค่าบริหารร้าน 25% <span class="text-xs text-blue-500">(คำนวณจากรายได้)</span></label>
+                        <input type="number" id="ค่าบริหารร้าน25" step="0.01" required readonly class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border bg-gray-100 focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
                     </div>
                 </div>
 
@@ -261,13 +261,13 @@
             { key: 'month', header: 'เดือน', type: 'string', isEditable: false, isSummary: true, summaryLabel: 'รวมทั้งสิ้น' },
             { key: 'isoDate', header: 'ISO Date', type: 'hidden', isEditable: false }, // Internal key for sorting
             { key: 'รายได้ซักอบ', header: 'รายได้ซักอบ', type: 'number', isEditable: true }, // **STORES NET AMOUNT**
-            { key: 'ค่าเช่า3', header: 'ค่าเช่า 3%', type: 'number', isEditable: true },
-            { key: 'ค่าน้ำ', header: 'ค่าน้ำ', type: 'number', isEditable: true },
-            { key: 'ค่าไฟ', header: 'ค่าไฟ', type: 'number', isEditable: true },
-            { key: 'ค่าเน็ต', header: 'ค่าเน็ต', type: 'number', isEditable: true },
-            { key: 'ค่าส่วนกลาง', header: 'ค่าส่วนกลาง', type: 'number', isEditable: true },
-            { key: 'ค่าเบี้ยประกันภัย', header: 'ค่าเบี้ยประกันภัย', type: 'number', isEditable: true },
-            { key: 'ค่าบริหารร้าน25', header: 'ค่าบริหารร้าน 25%', type: 'number', isEditable: true },
+            { key: 'ค่าเช่า5', header: 'ค่าเช่า 5%', type: 'number', isEditable: false }, // CHANGED from 'ค่าเช่า3', now auto-calculated (NET)
+            { key: 'ค่าน้ำ', header: 'ค่าน้ำ', type: 'number', isEditable: true }, 
+            { key: 'ค่าไฟ', header: 'ค่าไฟ', type: 'number', isEditable: true }, 
+            { key: 'ค่าเน็ต', header: 'ค่าเน็ต', type: 'number', isEditable: true }, 
+            { key: 'ค่าส่วนกลาง', header: 'ค่าส่วนกลาง', type: 'number', isEditable: true }, 
+            { key: 'ค่าเบี้ยประกันภัย', header: 'ค่าเบี้ยประกันภัย', type: 'number', isEditable: true }, 
+            { key: 'ค่าบริหารร้าน25', header: 'ค่าบริหารร้าน 25%', type: 'number', isEditable: false }, // Now auto-calculated (NET)
             { key: 'รวมค่าใช้จ่าย', header: 'รวมค่าใช้จ่าย', type: 'calculated', isSummary: true, isTotalExpense: true },
             { key: 'สรุปยอดโอน', header: 'สรุปยอดโอน', type: 'calculated', isSummary: true, isNetTransfer: true },
             { key: 'action', header: 'แก้ไข', type: 'action' }
@@ -279,7 +279,8 @@
             const getNum = (key) => parseFloat(record[key] || 0);
 
             // 1. รวมค่าใช้จ่าย (Total Expenses - all are NET/Pre-VAT)
-            const totalExpenses = getNum('ค่าเช่า3') + getNum('ค่าน้ำ') + getNum('ค่าไฟ') + getNum('ค่าเน็ต') + 
+            // IMPORTANT: Updated to use 'ค่าเช่า5' key
+            const totalExpenses = getNum('ค่าเช่า5') + getNum('ค่าน้ำ') + getNum('ค่าไฟ') + getNum('ค่าเน็ต') + 
                                   getNum('ค่าส่วนกลาง') + getNum('ค่าเบี้ยประกันภัย') + getNum('ค่าบริหารร้าน25');
 
             // 2. สรุปยอดโอน (Net Transfer Amount = Income NET - Expenses NET)
@@ -346,16 +347,20 @@
                         let value = record[col.key] !== undefined ? record[col.key] : '';
 
                         if (col.type === 'number' || col.type === 'calculated') {
-                            // For display, convert Income back to GROSS for the user's view
+                            // Convert NET stored value to GROSS for display if it's income or an expense.
+                            // The calculated summary fields (รวมค่าใช้จ่าย, สรุปยอดโอน) remain NET values for calculation consistency.
+                            
                             let displayValue = parseFloat(value);
-                            if (col.key === 'รายได้ซักอบ') {
+                            
+                            // Determine if this key should be displayed as GROSS (i.e., it's a number input field)
+                            if (col.isEditable || col.key === 'ค่าเช่า5' || col.key === 'ค่าบริหารร้าน25') {
                                 displayValue = toGross(displayValue);
                             }
 
                             value = displayValue.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                             cell.className += ' text-right font-mono';
                             
-                            // Accumulate for summary (only original numbers and net transfer/total expenses)
+                            // Accumulate for summary (always use NET values for summation)
                             if (col.type === 'number' || col.isTotalExpense || col.isNetTransfer) {
                                 totalSummary[col.key] += parseFloat(record[col.key]);
                             }
@@ -391,9 +396,9 @@
                     } else if (col.key !== 'isoDate') {
                         let total = totalSummary[col.key];
 
-                        // For summary row, convert Income total back to GROSS for display
-                        if (col.key === 'รายได้ซักอบ') {
-                            total = toGross(total);
+                        // For summary row, convert the summed NET value back to GROSS for fields user inputs/relates to as GROSS.
+                        if (col.isEditable || col.key === 'ค่าเช่า5' || col.key === 'ค่าบริหารร้าน25') {
+                             total = toGross(total);
                         }
 
                         const displayValue = total.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -415,7 +420,7 @@
             tableSummaryRow.appendChild(summaryRow);
         };
         
-        // --- CHART LOGIC ---
+        // --- CHART LOGIC (Uses NET amounts for calculation and converts Income/Expenses to GROSS for display) ---
 
         function prepareChartData() {
             const labels = [];
@@ -436,9 +441,10 @@
                 const incomeGross = toGross(parseFloat(record.รายได้ซักอบ));
                 incomeData.push(incomeGross.toFixed(2));
 
-                // Line 2: รายจ่าย (Expenses) - Use NET amount (รวมค่าใช้จ่าย)
-                const expensesNet = parseFloat(record.รวมค่าใช้จ่าย);
-                expensesData.push(expensesNet.toFixed(2));
+                // Line 2: รายจ่าย (Expenses) - SUM of all expenses (NET) and convert to GROSS for display
+                const totalExpensesNet = parseFloat(record.รวมค่าใช้จ่าย);
+                const expensesGross = toGross(totalExpensesNet); // Convert total NET expenses back to GROSS for line 2
+                expensesData.push(expensesGross.toFixed(2));
 
                 // Line 3: ยอดโอน (Net Transfer) - Use NET amount (สรุปยอดโอน)
                 const netTransferNet = parseFloat(record.สรุปยอดโอน);
@@ -448,8 +454,8 @@
             return {
                 labels: labels,
                 income: incomeData,
-                expenses: expensesData,
-                netTransfer: netTransferData
+                expenses: expensesData, // Now Gross Expense Total
+                netTransfer: netTransferData // Remains Net Transfer
             };
         }
 
@@ -475,7 +481,7 @@
                             pointRadius: 4,
                         },
                         {
-                            label: '2. รายจ่าย (ก่อน VAT)',
+                            label: '2. รายจ่าย (ยอดรวม VAT)', // Updated label to reflect Gross Expense
                             data: data.expenses,
                             borderColor: 'rgb(239, 68, 68)', // Red
                             backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -484,7 +490,7 @@
                             pointRadius: 4,
                         },
                         {
-                            label: '3. ยอดโอนสุทธิ',
+                            label: '3. ยอดโอนสุทธิ (ก่อน VAT)',
                             data: data.netTransfer,
                             borderColor: 'rgb(34, 197, 94)', // Green
                             backgroundColor: 'rgba(34, 197, 94, 0.1)',
@@ -548,7 +554,7 @@
             });
         };
 
-        // --- View Switching Logic ---
+        // --- View Switching Logic (Unchanged) ---
         window.switchView = (viewName) => {
             const tableView = document.getElementById('view-table');
             const chartView = document.getElementById('view-chart');
@@ -579,6 +585,10 @@
         
         // --- CRUD Operations (Local Storage) ---
         const recordForm = document.getElementById('record-form');
+        
+        // List of manual expense fields that receive GROSS input
+        const MANUAL_EXPENSE_KEYS = ['ค่าน้ำ', 'ค่าไฟ', 'ค่าเน็ต', 'ค่าส่วนกลาง', 'ค่าเบี้ยประกันภัย'];
+
         recordForm.addEventListener('submit', (e) => {
             e.preventDefault();
             
@@ -597,17 +607,29 @@
                 isoDate: isoDate   // Full ISO date for chronological sorting
             };
             
-            // Capture all number inputs based on CONFIG
-            COLUMN_CONFIG.filter(c => c.isEditable && c.type === 'number').forEach(col => {
-                const input = document.getElementById(col.key);
-                let value = parseFloat(input.value || 0);
+            // 1. Get GROSS Income and calculate auto-fields
+            const grossIncomeInput = document.getElementById('รายได้ซักอบ');
+            const grossIncome = parseFloat(grossIncomeInput.value || 0);
+            
+            // Convert Gross Income to NET for storage (Income NET)
+            newRecordData['รายได้ซักอบ'] = toNet(grossIncome); 
 
-                if (col.key === 'รายได้ซักอบ') {
-                    // CONVERSION: Convert Gross Income (from form) to Net Income (for storage)
-                    value = toNet(value);
-                }
+            // Calculate auto-fields (now based on GROSS Income)
+            const grossRent5 = grossIncome * 0.05;
+            const grossMgmt25 = grossIncome * 0.25;
+            
+            // Store NET amounts for auto-fields (Rent NET and Mgmt NET)
+            newRecordData['ค่าเช่า5'] = toNet(grossRent5);
+            newRecordData['ค่าบริหารร้าน25'] = toNet(grossMgmt25);
+
+            // 2. Process remaining editable expense inputs (ค่าน้ำ, ค่าไฟ, etc.)
+            // These inputs receive GROSS amounts, must convert to NET for storage.
+            MANUAL_EXPENSE_KEYS.forEach(key => {
+                const input = document.getElementById(key);
+                const grossValue = parseFloat(input.value || 0);
                 
-                newRecordData[col.key] = value;
+                // CONVERSION: Convert Gross expense (from form) to Net expense (for storage)
+                newRecordData[key] = toNet(grossValue);
             });
             
             let records = window.dataStore;
@@ -663,7 +685,7 @@
             }
         };
 
-        // --- Modal & UI Management (Unchanged) ---
+        // --- Modal & UI Management ---
         window.openModal = (mode, id = null) => {
             const modal = document.getElementById('data-modal');
             const title = document.getElementById('modal-title');
@@ -671,11 +693,45 @@
             const recordIdInput = document.getElementById('record-id');
             const form = document.getElementById('record-form');
             const inputDate = document.getElementById('input-date');
+            
+            const inputGrossIncome = document.getElementById('รายได้ซักอบ');
+            const inputRent = document.getElementById('ค่าเช่า5');
+            const inputMgmt = document.getElementById('ค่าบริหารร้าน25');
 
             form.reset();
             recordIdInput.value = '';
             deleteBtn.classList.add('hidden');
             
+            const allNumberInputs = COLUMN_CONFIG.filter(c => c.type === 'number');
+            const readonlyKeys = ['ค่าเช่า5', 'ค่าบริหารร้าน25'];
+
+            // Setup read-only status and styling for auto-calculated fields
+            allNumberInputs.forEach(col => {
+                const input = document.getElementById(col.key);
+                if (readonlyKeys.includes(col.key)) {
+                    input.setAttribute('readonly', true);
+                    input.classList.add('bg-gray-100');
+                } else {
+                    input.removeAttribute('readonly');
+                    input.classList.remove('bg-gray-100');
+                }
+            });
+
+            // Dynamic calculation function for display
+            function updateAutoFields() {
+                const grossIncome = parseFloat(inputGrossIncome.value || 0);
+                
+                const grossRent5 = grossIncome * 0.05;
+                const grossMgmt25 = grossIncome * 0.25;
+
+                inputRent.value = grossRent5.toFixed(2);
+                inputMgmt.value = grossMgmt25.toFixed(2);
+            }
+            
+            // Add listener for dynamic update (needs to be added only once, but safe to call)
+            inputGrossIncome.oninput = updateAutoFields;
+
+
             if (mode === 'edit' && id) {
                 title.textContent = 'แก้ไขรายการรายเดือน';
                 recordIdInput.value = id;
@@ -687,17 +743,27 @@
                     inputDate.value = record.isoDate || '';
                     
                     // Populate number inputs
-                    COLUMN_CONFIG.filter(c => c.isEditable && c.type === 'number').forEach(col => {
+                    allNumberInputs.forEach(col => {
                         const input = document.getElementById(col.key);
-                        let value = record[col.key] !== undefined ? record[col.key] : 0;
+                        let value = record[col.key] !== undefined ? parseFloat(record[col.key]) : 0;
                         
                         if (col.key === 'รายได้ซักอบ') {
-                            // CONVERSION: Convert Net Income (from storage) back to Gross Income (for form display)
-                            value = toGross(value);
+                            // CONVERSION: Convert Income NET (storage) back to GROSS (display)
+                            input.value = toGross(value).toFixed(2);
+                        } else if (MANUAL_EXPENSE_KEYS.includes(col.key)) {
+                            // CONVERSION: Convert Expense NET (storage) back to GROSS (display)
+                            input.value = toGross(value).toFixed(2);
+                        } else if (readonlyKeys.includes(col.key)) {
+                             // Auto-calculated fields: Will be set by updateAutoFields() after income is set
+                             // We don't set them here, updateAutoFields call below will do it.
+                        } else {
+                            // Default to display stored NET value (should only apply if new editable fields are added)
+                            input.value = value.toFixed(2);
                         }
-
-                        input.value = value.toFixed(2);
                     });
+                    
+                    // Trigger the auto-calculation immediately after setting the Income input
+                    updateAutoFields();
                 }
             } else {
                 title.textContent = 'เพิ่มรายการใหม่';
@@ -708,9 +774,11 @@
                 inputDate.value = `${year}-${month}-01`;
                 
                 // Set default values for number inputs
-                COLUMN_CONFIG.filter(c => c.isEditable && c.type === 'number').forEach(col => {
-                    document.getElementById(col.key).value = 0;
+                allNumberInputs.forEach(col => {
+                    document.getElementById(col.key).value = 0.00;
                 });
+                // Ensure auto-fields are calculated for the default income (0)
+                updateAutoFields();
             }
             
             modal.classList.remove('hidden');
@@ -722,6 +790,8 @@
             modal.classList.add('hidden');
             modal.classList.remove('flex');
             document.getElementById('record-form').reset();
+            // Clear dynamic listener reference to prevent memory leaks if necessary (though DOM element is cleared)
+            document.getElementById('รายได้ซักอบ').oninput = null; 
         };
         
         // --- Custom Alert/Confirmation Dialog (Unchanged) ---
@@ -775,8 +845,8 @@
                 EXPORT_HEADERS.forEach(col => {
                     let value = calculatedRecord[col.key] !== undefined ? calculatedRecord[col.key] : '';
                     
-                    // For Income, export the GROSS amount for consistency with user input method
-                    if (col.key === 'รายได้ซักอบ') {
+                    // For Income and all expenses, export the GROSS amount for consistency with user input method
+                    if (col.isEditable || col.key === 'ค่าเช่า5' || col.key === 'ค่าบริหารร้าน25') {
                         value = toGross(parseFloat(value));
                     }
 
@@ -844,6 +914,7 @@
                         const internalKey = headerMap[header];
                         if (internalKey) {
                             let value = row[index];
+                            let numValue = parseFloat(value) || 0; // All numeric columns in export are GROSS/Calculated
 
                             if (internalKey === 'isoDate' && typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}$/)) {
                                 // Use the ISO date for sorting
@@ -852,24 +923,29 @@
                                 isValidRow = true;
                             } else if (internalKey === 'isoDate' && !value) {
                                 // Skip this row if critical 'isoDate' is missing for sorting
-                            } else if (internalKey !== 'month') { 
-                                // Handle number inputs
-                                if (typeof value === 'number') {
-                                    if (internalKey === 'รายได้ซักอบ') {
-                                        // CONVERSION: Income from Excel is GROSS, convert to NET for storage
-                                        value = toNet(value); 
-                                    }
-                                    newRecord[internalKey] = value;
-                                } else if (value) {
-                                    let numValue = parseFloat(value) || 0;
-                                    if (internalKey === 'รายได้ซักอบ') {
-                                        // CONVERSION: Income from Excel is GROSS, convert to NET for storage
-                                        numValue = toNet(numValue);
-                                    }
-                                    newRecord[internalKey] = numValue;
+                            } else if (internalKey === 'รายได้ซักอบ') { 
+                                // Income is GROSS in Excel -> Convert to NET for storage
+                                newRecord[internalKey] = toNet(numValue);
+                            } else if (MANUAL_EXPENSE_KEYS.includes(internalKey)) {
+                                // Manual Expenses are GROSS in Excel -> Convert to NET for storage
+                                newRecord[internalKey] = toNet(numValue);
+                            } else if (internalKey === 'ค่าเช่า5' || internalKey === 'ค่าบริหารร้าน25') {
+                                // Auto-calculated fields are GROSS in Excel -> Must be recalculated from Income NET! 
+                                // DO NOT use the Excel value directly, as it might be corrupted or calculated based on wrong data.
+                                // Instead, use the GROSS Income from the same row to recalculate and store NET.
+                                
+                                // Recalculate based on the Gross Income (which is converted to NET in the current newRecord)
+                                const grossIncomeForRecalculation = toGross(newRecord['รายได้ซักอบ'] || 0);
+                                if (grossIncomeForRecalculation > 0) {
+                                    const factor = internalKey === 'ค่าเช่า5' ? 0.05 : 0.25;
+                                    const grossRecalculated = grossIncomeForRecalculation * factor;
+                                    newRecord[internalKey] = toNet(grossRecalculated);
                                 } else {
-                                    newRecord[internalKey] = 0; // Default zero for missing numbers
+                                     newRecord[internalKey] = 0;
                                 }
+                            } else if (internalKey !== 'month' && !COLUMN_CONFIG.find(c => c.key === internalKey).isSummary) {
+                                // Fallback for other non-summary number fields: treat as NET and save
+                                newRecord[internalKey] = numValue;
                             }
                         }
                     });
@@ -877,7 +953,7 @@
                     if (isValidRow) {
                         // Assign a new local ID
                         newRecord.id = 'local-' + Date.now() + Math.random().toString(16).slice(2);
-                        // Apply calculations to ensure data integrity before saving
+                        // Apply final summary calculations
                         const finalRecord = calculateSummary(newRecord); 
                         recordsToSave.push(finalRecord);
                     }
