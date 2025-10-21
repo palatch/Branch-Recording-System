@@ -23,6 +23,8 @@
             border-radius: 10px;
         }
     </style>
+    <!-- Load Chart.js for visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
     <!-- Load SheetJS for Excel handling -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -42,50 +44,73 @@
             <p class="text-sm text-gray-500 mt-1" id="user-id-display">บันทึกข้อมูลในเครื่องคอมพิวเตอร์นี้เท่านั้น</p>
         </header>
 
-        <!-- Control Panel: Add, Import, Export -->
-        <div class="mb-6 flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4">
-            
-            <!-- Add Button -->
-            <button onclick="openModal('add')" class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200">
-                + เพิ่ม/แก้ไข รายการเดือน
-            </button>
+        <!-- Control Panel: Tabs, Add, Import, Export -->
+        <div class="flex flex-col mb-6">
+            <!-- Tabs -->
+            <div class="flex border-b border-gray-300 mb-4">
+                <button id="tab-table" onclick="switchView('table')" class="px-4 py-2 font-semibold text-sm rounded-t-lg transition-colors border-b-4 border-blue-600 text-blue-600 hover:bg-blue-50">
+                    ตารางข้อมูล
+                </button>
+                <button id="tab-chart" onclick="switchView('chart')" class="px-4 py-2 font-semibold text-sm rounded-t-lg transition-colors border-b-4 border-transparent text-gray-500 hover:bg-gray-50">
+                    กราฟสรุป
+                </button>
+            </div>
 
-            <!-- Import/Export Group -->
-            <div class="flex flex-grow space-x-2">
-                <input type="file" id="import-file" accept=".xlsx,.csv" class="hidden" onchange="importData(event)">
-                <button onclick="document.getElementById('import-file').click()" class="w-1/2 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 flex items-center justify-center text-sm md:text-base">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L10 11.586l1.293-1.293a1 1 0 111.414 1.414l-2 2a1 1 0 01-1.414 0l-2-2a1 1 0 010-1.414z" clip-rule="evenodd" /><path d="M10 2a1 1 0 011 1v7a1 1 0 11-2 0V3a1 1 0 011-1z" /></svg>
-                    นำเข้า Excel
+            <!-- Action Buttons -->
+            <div class="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4">
+                
+                <!-- Add Button -->
+                <button onclick="openModal('add')" class="w-full md:w-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200">
+                    + เพิ่ม/แก้ไข รายการเดือน
                 </button>
-                <button onclick="exportData()" class="w-1/2 bg-yellow-500 hover:bg-yellow-600 text-gray-800 font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 flex items-center justify-center text-sm md:text-base">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-3.293-9.293a1 1 0 001.414 1.414L10 9.414l1.293 1.293a1 1 0 001.414-1.414l-2-2a1 1 0 00-1.414 0l-2 2z" clip-rule="evenodd" /></svg>
-                    ส่งออก Excel
-                </button>
+
+                <!-- Import/Export Group -->
+                <div class="flex flex-grow space-x-2">
+                    <input type="file" id="import-file" accept=".xlsx,.csv" class="hidden" onchange="importData(event)">
+                    <button onclick="document.getElementById('import-file').click()" class="w-1/2 bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 flex items-center justify-center text-sm md:text-base">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L10 11.586l1.293-1.293a1 1 0 111.414 1.414l-2 2a1 1 0 01-1.414 0l-2-2a1 1 0 010-1.414z" clip-rule="evenodd" /><path d="M10 2a1 1 0 011 1v7a1 1 0 11-2 0V3a1 1 0 011-1z" /></svg>
+                        นำเข้า Excel
+                    </button>
+                    <button onclick="exportData()" class="w-1/2 bg-yellow-500 hover:bg-yellow-600 text-gray-800 font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200 flex items-center justify-center text-sm md:text-base">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-3.293-9.293a1 1 0 001.414 1.414L10 9.414l1.293 1.293a1 1 0 001.414-1.414l-2-2a1 1 0 00-1.414 0l-2 2z" clip-rule="evenodd" /></svg>
+                        ส่งออก Excel
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- Table Display -->
-        <div class="bg-white p-4 rounded-xl shadow-lg overflow-x-auto custom-scrollbar">
-            <table id="data-table" class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-blue-50">
-                    <tr id="table-header-row">
-                        <!-- Header will be dynamically generated here -->
-                    </tr>
-                </thead>
-                <tbody id="table-body" class="bg-white divide-y divide-gray-200 text-sm">
-                    <!-- Data rows will be dynamically generated here -->
-                </tbody>
-            </table>
-            <!-- Summary Row -->
-            <table class="min-w-full mt-4 text-sm font-bold border-t-2 border-blue-500">
-                <tbody id="table-summary-row">
-                    <!-- Summary row will be dynamically generated here -->
-                </tbody>
-            </table>
+        <!-- View Container (Table View) -->
+        <div id="view-table" class="bg-white p-4 rounded-xl shadow-lg">
+            <div class="overflow-x-auto custom-scrollbar">
+                <table id="data-table" class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-blue-50">
+                        <tr id="table-header-row">
+                            <!-- Header will be dynamically generated here -->
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="bg-white divide-y divide-gray-200 text-sm">
+                        <!-- Data rows will be dynamically generated here -->
+                    </tbody>
+                </table>
+                <!-- Summary Row -->
+                <table class="min-w-full mt-4 text-sm font-bold border-t-2 border-blue-500">
+                    <tbody id="table-summary-row">
+                        <!-- Summary row will be dynamically generated here -->
+                    </tbody>
+                </table>
 
-            <p id="empty-state" class="text-center text-gray-500 p-8 hidden">
-                ยังไม่มีข้อมูลรายรับ-รายจ่าย กรุณาเพิ่มรายการใหม่
-            </p>
+                <p id="empty-state" class="text-center text-gray-500 p-8 hidden">
+                    ยังไม่มีข้อมูลรายรับ-รายจ่าย กรุณาเพิ่มรายการใหม่
+                </p>
+            </div>
+        </div>
+
+        <!-- View Container (Chart View) -->
+        <div id="view-chart" class="bg-white p-4 rounded-xl shadow-lg hidden">
+             <h2 class="text-xl font-bold mb-4 text-blue-700">กราฟสรุปรายรับ-รายจ่ายรายเดือน</h2>
+            <div class="relative h-96">
+                <canvas id="expenseChart"></canvas>
+            </div>
         </div>
     </div>
 
@@ -109,7 +134,7 @@
                     <!-- Input: รายได้ซักอบ (RENAMED and now takes GROSS amount) -->
                     <div class="col-span-2 sm:col-span-1">
                         <label for="รายได้ซักอบ" class="block text-sm font-medium text-gray-700">รายได้ซักอบ <span class="text-xs text-blue-500">(ยอดรวม VAT 7%)</span></label>
-                        <input type="number" id="รายได้ซักอบ" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
+                        <input type="number" id="รายได้ซักอบ" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
                     </div>
                 </div>
 
@@ -117,37 +142,37 @@
                     <!-- Input: ค่าเช่า3 (Input NET/Pre-VAT) -->
                     <div>
                         <label for="ค่าเช่า3" class="block text-sm font-medium text-gray-700">ค่าเช่า 3% <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
-                        <input type="number" id="ค่าเช่า3" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
+                        <input type="number" id="ค่าเช่า3" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
                     </div>
                     <!-- Input: ค่าน้ำ (Input NET/Pre-VAT) -->
                     <div>
                         <label for="ค่าน้ำ" class="block text-sm font-medium text-gray-700">ค่าน้ำ <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
-                        <input type="number" id="ค่าน้ำ" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
+                        <input type="number" id="ค่าน้ำ" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
                     </div>
                     <!-- Input: ค่าไฟ (Input NET/Pre-VAT) -->
                     <div>
                         <label for="ค่าไฟ" class="block text-sm font-medium text-gray-700">ค่าไฟ <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
-                        <input type="number" id="ค่าไฟ" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
+                        <input type="number" id="ค่าไฟ" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
                     </div>
                     <!-- Input: ค่าเน็ต (Input NET/Pre-VAT) -->
                     <div>
                         <label for="ค่าเน็ต" class="block text-sm font-medium text-gray-700">ค่าเน็ต <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
-                        <input type="number" id="ค่าเน็ต" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
+                        <input type="number" id="ค่าเน็ต" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
                     </div>
                     <!-- Input: ค่าส่วนกลาง (Input NET/Pre-VAT) -->
                     <div>
                         <label for="ค่าส่วนกลาง" class="block text-sm font-medium text-gray-700">ค่าส่วนกลาง <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
-                        <input type="number" id="ค่าส่วนกลาง" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
+                        <input type="number" id="ค่าส่วนกลาง" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
                     </div>
                     <!-- Input: ค่าเบี้ยประกันภัย (Input NET/Pre-VAT) -->
                     <div>
                         <label for="ค่าเบี้ยประกันภัย" class="block text-sm font-medium text-gray-700">ค่าเบี้ยประกันภัย <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
-                        <input type="number" id="ค่าเบี้ยประกันภัย" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
+                        <input type="number" id="ค่าเบี้ยประกันภัย" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
                     </div>
                     <!-- Input: ค่าบริหารร้าน25 (Input NET/Pre-VAT) -->
                     <div class="col-span-2">
                         <label for="ค่าบริหารร้าน25" class="block text-sm font-medium text-gray-700">ค่าบริหารร้าน 25% <span class="text-xs text-gray-400">(ก่อน VAT)</span></label>
-                        <input type="number" id="ค่าบริหารร้าน25" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
+                        <input type="number" id="ค่าบริหารร้าน25" step="0.01" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border focus:ring-blue-500 focus:border-blue-500" value="0" min="0">
                     </div>
                 </div>
 
@@ -185,6 +210,7 @@
     <script>
         // Global data store to hold records for display, export, and localStorage manipulation
         window.dataStore = [];
+        let expenseChartInstance = null;
         const LOCAL_STORAGE_KEY = 'monthly_expense_records';
 
         // --- Local Storage Management ---
@@ -277,6 +303,10 @@
 
             if (records.length === 0) {
                 document.getElementById('empty-state').classList.remove('hidden');
+                // Ensure chart is also updated if data is empty
+                if(document.getElementById('view-chart').classList.contains('flex')) {
+                    renderChart({ labels: [], income: [], expenses: [], netTransfer: [] });
+                }
                 return;
             }
             document.getElementById('empty-state').classList.add('hidden');
@@ -385,6 +415,168 @@
             tableSummaryRow.appendChild(summaryRow);
         };
         
+        // --- CHART LOGIC ---
+
+        function prepareChartData() {
+            const labels = [];
+            const incomeData = [];
+            const expensesData = [];
+            const netTransferData = [];
+
+            // Sort data chronologically (already sorted in initial load/CRUD, but double check)
+            const sortedRecords = [...window.dataStore].sort((a, b) => (a.isoDate > b.isoDate) ? 1 : -1);
+
+            sortedRecords.forEach(rawRecord => {
+                const record = calculateSummary({ ...rawRecord });
+                
+                // Labels (Thai Month format)
+                labels.push(record.month);
+
+                // Line 1: รายได้ (Income) - Use GROSS amount (from user input)
+                const incomeGross = toGross(parseFloat(record.รายได้ซักอบ));
+                incomeData.push(incomeGross.toFixed(2));
+
+                // Line 2: รายจ่าย (Expenses) - Use NET amount (รวมค่าใช้จ่าย)
+                const expensesNet = parseFloat(record.รวมค่าใช้จ่าย);
+                expensesData.push(expensesNet.toFixed(2));
+
+                // Line 3: ยอดโอน (Net Transfer) - Use NET amount (สรุปยอดโอน)
+                const netTransferNet = parseFloat(record.สรุปยอดโอน);
+                netTransferData.push(netTransferNet.toFixed(2));
+            });
+
+            return {
+                labels: labels,
+                income: incomeData,
+                expenses: expensesData,
+                netTransfer: netTransferData
+            };
+        }
+
+        window.renderChart = (data) => {
+            const ctx = document.getElementById('expenseChart').getContext('2d');
+            
+            if (expenseChartInstance) {
+                expenseChartInstance.destroy();
+            }
+
+            expenseChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: '1. รายได้ (ยอดรวม VAT)',
+                            data: data.income,
+                            borderColor: 'rgb(59, 130, 246)', // Blue
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: false,
+                            tension: 0.1,
+                            pointRadius: 4,
+                        },
+                        {
+                            label: '2. รายจ่าย (ก่อน VAT)',
+                            data: data.expenses,
+                            borderColor: 'rgb(239, 68, 68)', // Red
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            fill: false,
+                            tension: 0.1,
+                            pointRadius: 4,
+                        },
+                        {
+                            label: '3. ยอดโอนสุทธิ',
+                            data: data.netTransfer,
+                            borderColor: 'rgb(34, 197, 94)', // Green
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            fill: false,
+                            tension: 0.1,
+                            pointRadius: 4,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    family: "'Noto Sans Thai', 'Inter', sans-serif"
+                                }
+                            }
+                        },
+                        title: {
+                            display: false,
+                        }
+                    },
+                    scales: {
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'จำนวนเงิน (บาท)',
+                                font: {
+                                    family: "'Noto Sans Thai', 'Inter', sans-serif"
+                                }
+                            },
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value, index, ticks) {
+                                    return value.toLocaleString('th-TH');
+                                },
+                                font: {
+                                    family: "'Noto Sans Thai', 'Inter', sans-serif"
+                                }
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'เดือน',
+                                font: {
+                                    family: "'Noto Sans Thai', 'Inter', sans-serif"
+                                }
+                            },
+                            ticks: {
+                                font: {
+                                    family: "'Noto Sans Thai', 'Inter', sans-serif"
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        };
+
+        // --- View Switching Logic ---
+        window.switchView = (viewName) => {
+            const tableView = document.getElementById('view-table');
+            const chartView = document.getElementById('view-chart');
+            const tabTable = document.getElementById('tab-table');
+            const tabChart = document.getElementById('tab-chart');
+
+            if (viewName === 'table') {
+                tableView.classList.remove('hidden');
+                chartView.classList.add('hidden');
+                tabTable.classList.add('border-blue-600', 'text-blue-600');
+                tabTable.classList.remove('border-transparent', 'text-gray-500');
+                tabChart.classList.remove('border-blue-600', 'text-blue-600');
+                tabChart.classList.add('border-transparent', 'text-gray-500');
+            } else if (viewName === 'chart') {
+                const chartData = prepareChartData();
+                renderChart(chartData);
+
+                tableView.classList.add('hidden');
+                chartView.classList.remove('hidden');
+                chartView.classList.add('flex', 'flex-col'); // Ensure flex for responsiveness
+
+                tabChart.classList.add('border-blue-600', 'text-blue-600');
+                tabChart.classList.remove('border-transparent', 'text-gray-500');
+                tabTable.classList.remove('border-blue-600', 'text-blue-600');
+                tabTable.classList.add('border-transparent', 'text-gray-500');
+            }
+        };
+        
         // --- CRUD Operations (Local Storage) ---
         const recordForm = document.getElementById('record-form');
         recordForm.addEventListener('submit', (e) => {
@@ -438,6 +630,11 @@
             window.dataStore = records;
             window.renderTable(records);
             
+            // If currently on chart view, re-render chart
+            if (document.getElementById('view-chart').classList.contains('flex')) {
+                 renderChart(prepareChartData());
+            }
+
             closeModal();
         });
         
@@ -455,13 +652,18 @@
                         window.dataStore = records;
                         window.renderTable(records);
                         
+                        // If currently on chart view, re-render chart
+                        if (document.getElementById('view-chart').classList.contains('flex')) {
+                            renderChart(prepareChartData());
+                        }
+
                         closeModal();
                     }
                 });
             }
         };
 
-        // --- Modal & UI Management ---
+        // --- Modal & UI Management (Unchanged) ---
         window.openModal = (mode, id = null) => {
             const modal = document.getElementById('data-modal');
             const title = document.getElementById('modal-title');
@@ -522,7 +724,7 @@
             document.getElementById('record-form').reset();
         };
         
-        // --- Custom Alert/Confirmation Dialog ---
+        // --- Custom Alert/Confirmation Dialog (Unchanged) ---
         let resolvePromise;
         window.confirmCallback = (result) => {
             document.getElementById('alert-modal').classList.add('hidden');
@@ -549,7 +751,7 @@
         }
 
 
-        // --- Excel Import/Export Logic (using SheetJS/XLSX) ---
+        // --- Excel Import/Export Logic (Unchanged) ---
 
         // Map column keys to Thai headers for file export
         const EXPORT_HEADERS = COLUMN_CONFIG
